@@ -1,117 +1,108 @@
 from tkinter import *
-from tkinter import messagebox as mb
-from PIL import ImageTk
+from PIL import ImageTk, Image
 import random
-import shutil
+import os
 
-cards = [
-    "game_files/c1.jpg",
-    "game_files/c2.jpg",
-    "game_files/c3.jpg",
-    "game_files/c4.jpg",
-    "game_files/c5.jpg",
-    "game_files/c6.jpg"
+CARD_IMAGES = [
+  "cat_card.png",
+  "dog_card.png",
+  "parrot_card.png",
+  "hamster_card.png",
+  "hamster2_card.png",
+  "rabbit_card.png",
+  "bear_card.png",
+  "deer_card.png"
 ]
 
-cards = cards * 2
-random.shuffle(cards)
+def resource_path(relative_path):
+  try:
+    base_path = sys._MEIPASS
+  except Exception:
+    base_path = os.path.abspath(".")
+  return os.path.join(base_path, relative_path)
 
-first_choice = None
-second_choice = None
-first_button = None
-second_button = None
-w = 0
-buttons = []
-images = []
-can_click = False
+class MemoryGame:
+  def __init__(self, master):
+    self.master = master
+    master.title("Memory")
+    master.configure(bg="white")
+    self.card_pairs = CARD_IMAGES * 2
+    random.shuffle(self.card_pairs)
+    self.first_card = None
+    self.second_card = None
+    self.first_button = None
+    self.second_button = None
+    self.buttons = []
+    self.images = []
+    self.can_click = False
+    self.default_image = ImageTk.PhotoImage(Image.open(resource_path("empty_card.png")))
+    self.load_images()
+    self.create_board()
+    self.start_game()
 
-def delete():
-    shutil.rmtree("game_files")
-    root.destroy()
+  def load_images(self):
+    self.images = [ImageTk.PhotoImage(Image.open(resource_path(card))) for card in self.card_pairs]
 
-def start():
-    global w, first_choice, second_choice, first_button, second_button, can_click
-    w = 0
-    first_choice = None
-    second_choice = None
-    can_click = False
-    
-    for btn in buttons:
-        btn.config(image=c0, state=NORMAL)
+  def create_board(self):
+    for row in range(4):
+      frame = Frame(self.master, bg="white")
+      frame.pack()
+      for col in range(4):
+        index = row * 4 + col
+        button = Button(frame, width=100, height=100, bg="white", image=self.default_image,
+                        command=lambda index=index: self.on_card_click(index))
+        button.pack(side=LEFT)
+        self.buttons.append(button)
 
-        for btn in buttons:
-            btn.config(image=c0)
-            root.after(100, show_all_cards) 
+  def start_game(self):
+    self.first_card = None
+    self.second_card = None
+    self.can_click = False
+    for button in self.buttons:
+      button.config(image=self.default_image, state=NORMAL)
+    self.master.after(100, self.show_all_cards)
 
-def show_all_cards():
-    for btn in buttons:
-        idx = buttons.index(btn)
-        btn.config(image=images[idx])
-    root.after(3000, hide)
+  def show_all_cards(self):
+    for i, button in enumerate(self.buttons):
+      button.config(image=self.images[i])
+    self.can_click = False
+    self.master.after(3000, self.hide_cards)
 
-def hide():
-    for index in range(len(buttons)):
-        buttons[index].config(image=c0)
-    global can_click
-    can_click = True  
+  def hide_cards(self):
+    for button in self.buttons:
+      button.config(image=self.default_image)
+    self.can_click = True
 
-def on_button_click(index):
-    global first_choice, second_choice, first_button, second_button, can_click
+  def on_card_click(self, index):
+    if not self.can_click:
+      return
 
-    if not can_click:
-        return  
+    button = self.buttons[index]
+    button.config(image=self.images[index])
 
-    button = buttons[index]
-    button.config(image=images[index])
+    if self.first_card is None:
+      self.first_card = self.card_pairs[index]
+      self.first_button = button
+    elif self.second_card is None:
+      self.second_card = self.card_pairs[index]
+      self.second_button = button
+      self.can_click = False
+      self.master.after(750, self.check_match)
 
-    if first_choice is None:
-        first_choice = cards[index]
-        first_button = button
-    elif second_choice is None:
-        second_choice = cards[index]
-        second_button = button
-        can_click = False  
-        root.after(750, check_match)
-
-def check_match():
-    global first_choice, second_choice, first_button, second_button, w, can_click
-
-    if first_choice == second_choice:
-        w += 1
-        first_button.config(state=DISABLED)
-        second_button.config(state=DISABLED)
+  def check_match(self):
+    if self.first_card == self.second_card:
+      self.first_button.config(state=DISABLED)
+      self.second_button.config(state=DISABLED)
     else:
-        first_button.config(image=c0)
-        second_button.config(image=c0)
+      self.first_button.config(image=self.default_image)
+      self.second_button.config(image=self.default_image)
 
-    first_choice = None
-    second_choice = None
-    first_button = None
-    second_button = None
-    can_click = True
+    self.first_card = None
+    self.second_card = None
+    self.first_button = None
+    self.second_button = None
+    self.can_click = True
 
 root = Tk()
-root.geometry('700x520')
-root.resizable(width=0, height=0)
-root.title("Memory")
-root.configure(bg="white")
-
-shutil.unpack_archive("game_files.zip", "game_files")
-
-c0 = ImageTk.PhotoImage(file="game_files/c0.jpg")  
-images = [ImageTk.PhotoImage(file=card) for card in cards]
-buttons = []
-
-for row in range(3):
-    frame = Frame(root, bg="white")
-    frame.pack()
-    for col in range(4):
-        index = row * 4 + col
-        btn = Button(frame, width=165, height=165, bg="white", image=c0, command=lambda index=index: on_button_click(index), state=DISABLED)
-        btn.pack(side=LEFT)
-        buttons.append(btn)
-
-start()
-
-root.protocol("WM_DELETE_WINDOW", delete)
+game = MemoryGame(root)
 root.mainloop()
