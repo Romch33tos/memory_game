@@ -25,8 +25,12 @@ class MemoryGame:
     master.configure(bg="white")
     master.resizable(False, False)
 
-    self.create_menu()
+    self.game_completed = False
 
+    self.create_menu()
+    self.setup_game()
+
+  def setup_game(self):
     self.card_pairs = CARD_IMAGES * 2
     random.shuffle(self.card_pairs)
     self.first_card = None
@@ -38,6 +42,11 @@ class MemoryGame:
     self.can_click = False
     self.matched_pairs = 0
     self.total_pairs = len(CARD_IMAGES)
+    self.game_completed = False
+
+    for widget in self.master.winfo_children():
+      if isinstance(widget, Frame):
+        widget.destroy()
 
     self.default_image = self.load_and_process_image("empty_card.png")
     self.load_images()
@@ -46,7 +55,7 @@ class MemoryGame:
 
   def load_and_process_image(self, filename):
     image_path = resource_path(filename)
-    
+
     try:
       img = Image.open(image_path)
       img = img.resize((90, 90), Image.LANCZOS)
@@ -58,22 +67,25 @@ class MemoryGame:
   def create_menu(self):
     menubar = Menu(self.master)
 
-    help_menu = Menu(menubar, tearoff=0)
-    help_menu.add_command(label="Как играть", command=self.show_help)
-    menubar.add_cascade(label="Справка", menu=help_menu)
+    menubar.add_command(label="Справка", command=self.show_help)
+    menubar.add_command(label="Новая игра", command=self.check_restart_game)
 
     self.master.config(menu=menubar)
 
+  def check_restart_game(self):
+    if self.game_completed:
+      self.setup_game()
+    else:
+      messagebox.showwarning("Внимание!", "Завершите текущую игру перед началом новой!")
+
   def show_help(self):
     help_text = """Правила игры
-- В начале игры все карточки открыты на 5 секунд
-- Затем они переворачиваются рубашкой вверх
-- Нажимайте на карточки, чтобы открыть их
-- Открывайте по две карточки за ход
-- Если карточки совпадают - они остаются открытыми
-- Если не совпадают - переворачиваются обратно
-- Цель - найти все пары карточек
-- После победы нажмите пробел для новой игры"""
+- В начале игры все карточки открыты на 5 секунд.
+- Нажимайте на карточки, чтобы открыть их.
+- Открывайте по две карточки за ход.
+- Если карточки совпадают - они остаются открытыми.
+- Если не совпадают - переворачиваются обратно.
+- Цель - найти все пары карточек."""
     messagebox.showinfo("Справка", help_text)
 
   def load_images(self):
@@ -85,8 +97,9 @@ class MemoryGame:
       frame.pack()
       for col in range(4):  
         index = row * 4 + col
-        button = Button(frame, width=100, height=100, bg="white", image=self.default_image,
-                       command=lambda index=index: self.on_card_click(index))
+        button = Button(frame, width=100, height=100, bg="white", 
+                        image=self.default_image,
+                        command=lambda index=index: self.on_card_click(index))
         button.pack(side=LEFT)
         self.buttons.append(button)
 
@@ -94,11 +107,6 @@ class MemoryGame:
     self.card_pairs = random.sample(CARD_IMAGES * 2, 12)
     random.shuffle(self.card_pairs)
     self.load_images()
-
-    self.first_card = None
-    self.second_card = None
-    self.matched_pairs = 0
-    self.can_click = False
 
     for button in self.buttons:
       button.config(image=self.default_image, state=NORMAL)
@@ -139,8 +147,8 @@ class MemoryGame:
       self.matched_pairs += 1
 
       if self.matched_pairs == self.total_pairs:
-        messagebox.showinfo("Вы нашли все пары!", "Нажмите пробел для новой игры.")
-        self.master.bind('<space>', lambda event: self.start_game())
+        self.game_completed = True
+        messagebox.showinfo("Игра завершена!", "Вы нашли все пары!")
     else:
       self.first_button.config(image=self.default_image)
       self.second_button.config(image=self.default_image)
