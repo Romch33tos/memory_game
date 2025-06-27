@@ -4,6 +4,8 @@ import random
 import os
 import sys
 
+GAME_FILES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'game_files'))
+
 CARD_IMAGES = [
   "cat_card.png",
   "dog_card.png",
@@ -14,11 +16,7 @@ CARD_IMAGES = [
 ]
 
 def resource_path(relative_path):
-  try:
-    base_path = sys._MEIPASS
-  except Exception:
-    base_path = os.path.abspath(".")
-  return os.path.join(base_path, relative_path)
+  return os.path.join(GAME_FILES_DIR, relative_path)
 
 class MemoryGame:
   def __init__(self, master):
@@ -48,15 +46,22 @@ class MemoryGame:
 
   def load_and_process_image(self, filename):
     image_path = resource_path(filename)
-    img = Image.open(image_path)
-    img = img.resize((90, 90), Image.LANCZOS) 
-    return ImageTk.PhotoImage(img)
+    
+    try:
+      img = Image.open(image_path)
+      img = img.resize((90, 90), Image.LANCZOS)
+      return ImageTk.PhotoImage(img)
+    except FileNotFoundError:
+      messagebox.showerror("Ошибка", f"Файл изображения не найден: {image_path}")
+      sys.exit(1)
 
   def create_menu(self):
     menubar = Menu(self.master)
+
     help_menu = Menu(menubar, tearoff=0)
     help_menu.add_command(label="Как играть", command=self.show_help)
     menubar.add_cascade(label="Справка", menu=help_menu)
+
     self.master.config(menu=menubar)
 
   def show_help(self):
@@ -146,6 +151,7 @@ class MemoryGame:
     self.second_button = None
     self.can_click = True
 
-root = Tk()
-game = MemoryGame(root)
-root.mainloop()
+if __name__ == "__main__":
+  root = Tk()
+  game = MemoryGame(root)
+  root.mainloop()
