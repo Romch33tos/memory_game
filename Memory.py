@@ -1,9 +1,8 @@
-from tkinter import *
-from PIL import ImageTk, Image
+from tkinter import Tk, Frame, Button, Menu, messagebox, DISABLED, NORMAL, LEFT
+from PIL import ImageTk, Image, ImageFilter
 import random
 import os
 import sys
-from tkinter import messagebox
 
 CARD_IMAGES = [
   "cat_card.png",
@@ -42,23 +41,27 @@ class MemoryGame:
     self.matched_pairs = 0
     self.total_pairs = len(CARD_IMAGES)
 
-    self.default_image = ImageTk.PhotoImage(Image.open(resource_path("empty_card.png")))
+    self.default_image = self.load_and_process_image("empty_card.png")
     self.load_images()
     self.create_board()
     self.start_game()
 
+  def load_and_process_image(self, filename):
+    image_path = resource_path(filename)
+    img = Image.open(image_path)
+    img = img.resize((90, 90), Image.LANCZOS) 
+    return ImageTk.PhotoImage(img)
+
   def create_menu(self):
     menubar = Menu(self.master)
-
     help_menu = Menu(menubar, tearoff=0)
     help_menu.add_command(label="Как играть", command=self.show_help)
     menubar.add_cascade(label="Справка", menu=help_menu)
-
     self.master.config(menu=menubar)
 
   def show_help(self):
     help_text = """Правила игры
-- В начале игры все карточки открыты на 3 секунды
+- В начале игры все карточки открыты на 5 секунд
 - Затем они переворачиваются рубашкой вверх
 - Нажимайте на карточки, чтобы открыть их
 - Открывайте по две карточки за ход
@@ -69,7 +72,7 @@ class MemoryGame:
     messagebox.showinfo("Справка", help_text)
 
   def load_images(self):
-    self.images = [ImageTk.PhotoImage(Image.open(resource_path(card))) for card in self.card_pairs]
+    self.images = [self.load_and_process_image(card) for card in self.card_pairs]
 
   def create_board(self):
     for row in range(3):  
@@ -78,7 +81,7 @@ class MemoryGame:
       for col in range(4):  
         index = row * 4 + col
         button = Button(frame, width=100, height=100, bg="white", image=self.default_image,
-                        command=lambda index=index: self.on_card_click(index))
+                       command=lambda index=index: self.on_card_click(index))
         button.pack(side=LEFT)
         self.buttons.append(button)
 
@@ -101,7 +104,7 @@ class MemoryGame:
     for i, button in enumerate(self.buttons):
       button.config(image=self.images[i])
     self.can_click = False
-    self.master.after(3000, self.hide_cards)
+    self.master.after(5000, self.hide_cards)
 
   def hide_cards(self):
     for button in self.buttons:
